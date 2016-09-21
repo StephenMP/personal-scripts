@@ -1,0 +1,8 @@
+#!/bin/bash
+
+COUNTER=0
+while [  $COUNTER -lt $1 ]; do
+	let COUNTER=COUNTER+1
+	echo "$COUNTER"
+	sleep 1 
+done | progress -m $1 -w 50 -b "=" -i -t "Sleeping"

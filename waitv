@@ -1,0 +1,15 @@
+#!/bin/bash
+
+PID=$1
+i=1
+j=1
+sp='|/-\'
+sp2='|\-/'
+
+while [ -d /proc/$PID ]
+do
+	printf "\r[${sp2:j++%${#sp2}:1}] $2 [${sp:i++%${#sp}:1}]"
+	sleep .1
+done
+
+printf "\r$2 complete\n"

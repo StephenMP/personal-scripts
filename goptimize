@@ -1,0 +1,24 @@
+#!/bin/bash
+			
+echo "==================================="
+echo "Running: git gc --aggressive"
+git gc --aggressive
+echo "==================================="
+
+echo "==================================="
+echo "Running: git remote prune origin"
+git remote prune origin
+echo "==================================="
+
+echo "==================================="
+echo "Running: git gc --prune=now"
+git gc --prune=now
+echo "==================================="
+
+echo "==================================="
+echo "Running local git clean"
+git clean -xdf
+echo "==================================="
+
+echo ""
+echo "Optimization Complete!"

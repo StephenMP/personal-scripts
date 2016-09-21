@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# Switch to the default repo location #
+# cd /f/repos/main
+
+# Flag to hold if -a was passed #
+ALL=false;
+
+##
+# Parse through the user options
+# -a : Delete all local branches (except master or current)
+# -h : Help (output usage)
+# -d : Clean branches from user passed directory instead of default
+# -c : Run git clean
+# -p : Only prune remote branches
+# -m : Clean already merged branches
+##
+while getopts ":ahpmcd:" opt; do
+	case $opt in
+		a)
+			ALL=true
+			;;
+		h)
+			echo -e '\nDeletes local git branches in a directory
+			\rWill NOT delete master or your current branch
+			\rUsage: gclean [option(s)]
+			\r    Options:
+			\r        -a: Clean all local branches in default/specified directory (no prompt)
+			\r        -d <path>: Sets the path to the repo
+			\r        -p: Only prune local branches
+			\r        -c: Run git clean
+			\r        -m: Clean already merged branches
+			\r        default: Asks user permission for deletion in default path'
+			exit 0
+			;;
+		p)
+			echo "Pruning remote branches"
+			git remote prune origin
+			exit 0
+			;;
+		c)
+			echo "Running local git clean"
+
+			no > /dev/null 2>&1 | git clean -xdf
+			
+			if [ ${PWD##*/} = "main" ]
+			then
+				npm install
+			fi
+			exit 0
+			;;
+		d)
+			cd $OPTARG
+			echo "Switched to: $OPTARG"
+			
+			if git rev-parse --git-dir > /dev/null 2>&1;
+			then
+				echo "Is a git repo"
+			else
+				echo -e "Not a git repo!\nExiting..."
+				exit 1
+			fi
+			;;
+		m)
+			echo "Cleaning all already merged branches."
+			git branch --merged master | grep -v "\* master" | xargs -n 1 git branch -d
+			exit 0
+			;;
+		\?)
+			echo "Invalid option: -$OPTARG"
+			echo "Try again using the -h option for help"
+			exit 1
+			;;
+		:)
+			echo "Option -$OPTARG requires an argument"
+			echo "Try again using the -h option for help"
+			exit 1
+			;;
+	esac
+done
+
+# Prune remote branches #
+echo "Pruning remote branches"
+git remote prune origin
+
+###
+# Check through user local branches for deletion.
+# If -a was passed (ALL=true) then all local branches
+# except for the current branch and master will be deleted.
+# Otherwise, the user will be prompted if they would like to
+# delete a branch or not.
+##
+echo "Beginning branch clean-up"
+git branch | while read line
+do
+	# This is the current branch or master, so skip it #
+	if echo x"$line" | grep '*\|master' > /dev/null; then
+		continue
+	else
+		if [[ $ALL == true ]]
+		then
+			git branch -D "$line"
+		else
+			echo "Delete branch: $line (y/n)?"
+			read  -sn1 prompt < /dev/tty
+			if [[ $prompt == "y" || $prompt == "Y" ]] 
+			then 
+				git branch -D "$line"
+			else 
+				echo "Did NOT delete $line"
+			fi
+		echo ""
+		fi
+	fi
+done
+
+# And we're done #
+echo "No branches left to operate on"
