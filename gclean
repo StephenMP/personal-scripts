@@ -1,21 +1,12 @@
 #!/bin/bash
 
-# Switch to the default repo location #
-# cd /f/repos/main
-
 # Flag to hold if -a was passed #
-ALL=false;
+ALL=false
 
-##
-# Parse through the user options
-# -a : Delete all local branches (except master or current)
-# -h : Help (output usage)
-# -d : Clean branches from user passed directory instead of default
-# -c : Run git clean
-# -p : Only prune remote branches
-# -m : Clean already merged branches
-##
-while getopts ":ahpmcd:" opt; do
+##################################
+# Parse through the user options #
+##################################
+while getopts ":ahpmcnd:" opt; do
 	case $opt in
 		a)
 			ALL=true
@@ -29,6 +20,7 @@ while getopts ":ahpmcd:" opt; do
 			\r        -d <path>: Sets the path to the repo
 			\r        -p: Only prune local branches
 			\r        -c: Run git clean
+			\r        -n: Run npm install
 			\r        -m: Clean already merged branches
 			\r        default: Asks user permission for deletion in default path'
 			exit 0
@@ -43,14 +35,13 @@ while getopts ":ahpmcd:" opt; do
 
 			no > /dev/null 2>&1 | git clean -xdf
 			
-			if [ ${PWD##*/} = "main" ]
-			then
-				npm install
-			fi
 			exit 0
 			;;
+		n)
+			npm install
+			;;
 		d)
-			cd $OPTARG
+			cd $OPTARG || exit
 			echo "Switched to: $OPTARG"
 			
 			if git rev-parse --git-dir > /dev/null 2>&1;
@@ -83,7 +74,7 @@ done
 echo "Pruning remote branches"
 git remote prune origin
 
-###
+##
 # Check through user local branches for deletion.
 # If -a was passed (ALL=true) then all local branches
 # except for the current branch and master will be deleted.
