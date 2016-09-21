@@ -39,6 +39,7 @@ while getopts ":ahpmcnd:" opt; do
 			;;
 		n)
 			npm install
+			exit 0
 			;;
 		d)
 			cd $OPTARG || exit
