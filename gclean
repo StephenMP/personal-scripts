@@ -2,21 +2,91 @@
 
 # Flag to hold if -a was passed #
 ALL=false
+NPM_INSTALL=false
+PRUNE_REMOTE=false
+CLEAN_XDF=false
+CLEAN_LOCAL=false
+CLEAN_MERGED=false
+
+cleanLocalBranches(){
+	echo "Beginning branch clean-up"
+	git branch | while read line
+	do
+		# This is the current branch or master, so skip it #
+		if echo x"$line" | grep '*\|master' > /dev/null; then
+			continue
+		else
+			if [[ $ALL == true ]]
+			then
+				git branch -D "$line"
+			else
+				echo "Delete branch: $line (y/n)?"
+				read  -sn1 prompt < /dev/tty
+				if [[ $prompt == "y" || $prompt == "Y" ]] 
+				then 
+					git branch -D "$line"
+				else 
+					echo "Did NOT delete $line"
+				fi
+			echo ""
+			fi
+		fi
+	done
+
+	# And we're done #
+	echo "No branches left to operate on"
+}
+
+cleanRemoteBranches(){
+	git remote prune origin
+}
+
+cleanMerged(){
+	git branch --merged master | grep -v "\* master" | xargs -n 1 git branch -d
+}
+
+cleanXdf(){
+	no > /dev/null 2>&1 | git clean -xdf
+}
+
+main(){
+	if [[ $CLEAN_LOCAL == true ]]
+	then
+		cleanLocalBranches
+	fi
+	
+	if [[ $PRUNE_REMOTE == true ]]
+	then
+		cleanRemoteBranches
+	fi
+		
+	if [[ $NPM_INSTALL == true ]]
+	then
+		npm install
+	fi
+	
+	if [[ $CLEAN_XDF == true ]]
+	then
+		cleanXdf
+	fi
+	
+	if [[ $CLEAN_MERGED == true ]]
+	then
+		cleanMerged
+	fi
+}
 
 ##################################
 # Parse through the user options #
 ##################################
-while getopts ":ahpmcnd:" opt; do
+while getopts ":abhpmcnd:" opt; do
 	case $opt in
-		a)
-			ALL=true
-			;;
 		h)
-			echo -e '\nDeletes local git branches in a directory
-			\rWill NOT delete master or your current branch
+			echo -e '\nScript to manage git and branch cleanup. Default does nothing
 			\rUsage: gclean [option(s)]
 			\r    Options:
 			\r        -a: Clean all local branches in default/specified directory (no prompt)
+			\r        -b: Iterates all local branches and sks user if they want to delete a branch
 			\r        -d <path>: Sets the path to the repo
 			\r        -p: Only prune local branches
 			\r        -c: Run git clean
@@ -25,21 +95,21 @@ while getopts ":ahpmcnd:" opt; do
 			\r        default: Asks user permission for deletion in default path'
 			exit 0
 			;;
+		a)
+			ALL=true
+			CLEAN_LOCAL=true
+			;;
+		b)
+			CLEAN_LOCAL=true
+			;;
 		p)
-			echo "Pruning remote branches"
-			git remote prune origin
-			exit 0
+			PRUNE_REMOTE=true
 			;;
 		c)
-			echo "Running local git clean"
-
-			no > /dev/null 2>&1 | git clean -xdf
-			
-			exit 0
+			CLEAN_XDF=true
 			;;
 		n)
-			npm install
-			exit 0
+			NPM_INSTALL=true
 			;;
 		d)
 			cd $OPTARG || exit
@@ -54,9 +124,7 @@ while getopts ":ahpmcnd:" opt; do
 			fi
 			;;
 		m)
-			echo "Cleaning all already merged branches."
-			git branch --merged master | grep -v "\* master" | xargs -n 1 git branch -d
-			exit 0
+			CLEAN_MERGED=true
 			;;
 		\?)
 			echo "Invalid option: -$OPTARG"
@@ -71,40 +139,4 @@ while getopts ":ahpmcnd:" opt; do
 	esac
 done
 
-# Prune remote branches #
-echo "Pruning remote branches"
-git remote prune origin
-
-##
-# Check through user local branches for deletion.
-# If -a was passed (ALL=true) then all local branches
-# except for the current branch and master will be deleted.
-# Otherwise, the user will be prompted if they would like to
-# delete a branch or not.
-##
-echo "Beginning branch clean-up"
-git branch | while read line
-do
-	# This is the current branch or master, so skip it #
-	if echo x"$line" | grep '*\|master' > /dev/null; then
-		continue
-	else
-		if [[ $ALL == true ]]
-		then
-			git branch -D "$line"
-		else
-			echo "Delete branch: $line (y/n)?"
-			read  -sn1 prompt < /dev/tty
-			if [[ $prompt == "y" || $prompt == "Y" ]] 
-			then 
-				git branch -D "$line"
-			else 
-				echo "Did NOT delete $line"
-			fi
-		echo ""
-		fi
-	fi
-done
-
-# And we're done #
-echo "No branches left to operate on"
+main
