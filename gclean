@@ -2,6 +2,7 @@
 
 # Flag to hold if -a was passed #
 ALL=false
+MAIN_BRANCH="main"
 NPM_INSTALL=false
 PRUNE_REMOTE=false
 CLEAN_XDF=false
@@ -12,8 +13,8 @@ cleanLocalBranches(){
 	echo "Beginning branch clean-up"
 	git branch | while read line
 	do
-		# This is the current branch or master, so skip it #
-		if echo x"$line" | grep '*\|master' > /dev/null; then
+		# This is the current branch or $MAIN_BRANCH, so skip it #
+		if echo x"$line" | grep "*\|$MAIN_BRANCH" > /dev/null; then
 			continue
 		else
 			if [[ $ALL == true ]]
@@ -42,7 +43,7 @@ cleanRemoteBranches(){
 }
 
 cleanMerged(){
-	git branch --merged master | grep -v "\* master" | xargs -n 1 git branch -d
+	git branch --merged $MAIN_BRANCH | grep -v "\* $MAIN_BRANCH" | xargs -n 1 git branch -d
 }
 
 cleanXdf(){
@@ -79,7 +80,7 @@ main(){
 ##################################
 # Parse through the user options #
 ##################################
-while getopts ":abhpmcnd:" opt; do
+while getopts ":abhpmcnd:t:" opt; do
 	case $opt in
 		h)
 			echo -e '\nScript to manage git and branch cleanup. Default does nothing
@@ -92,6 +93,7 @@ while getopts ":abhpmcnd:" opt; do
 			\r        -c: Run git clean
 			\r        -n: Run npm install
 			\r        -m: Clean already merged branches
+			\r        -t: Override the default branch (e.g. if still using master as default branch. This defaults to "main")
 			\r        default: Asks user permission for deletion in default path'
 			exit 0
 			;;
@@ -125,6 +127,9 @@ while getopts ":abhpmcnd:" opt; do
 			;;
 		m)
 			CLEAN_MERGED=true
+			;;
+		t)
+			MAIN_BRANCH=${OPTARG}
 			;;
 		\?)
 			echo "Invalid option: -$OPTARG"
